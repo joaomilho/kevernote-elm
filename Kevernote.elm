@@ -1,27 +1,31 @@
 module Kevernote where
 
-import Date exposing (fromString, toTime)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onClick, targetValue)
 import Signal exposing((<~), Address)
 import String
-import Time exposing (every, second, minute, hour)
+import Time exposing (Time, every, second, minute, hour)
 import Debug
 
 --------
 -- Model
 --------
 
-type alias Note = { id: Int, title : String, body : String, created_at : String, distance_in_time : String }
+lipsum : String
+lipsum =
+    "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
 
-type alias Model = { uid : Int, notes : List Note, selectedNote : Int }
+type alias Note = { id: Int, title : String, body : String, createdAt : Float, distanceInTime : String }
+
+type alias Model = { uid : Int, notes : List Note, selectedNote : Int, currentTime: Float }
 
 initialModel : Model
 initialModel =
     { uid = 2,
-      notes = [Note 1 "New" "New" "2015-8-2 15:31:32" "...", Note 2 "Title2" "Desc2" "2015-8-1 15:10:32" "..."],
-      selectedNote = 1 }
+      notes = List.reverse [Note 1 "Note #1" lipsum 1438554156953 "...", Note 2 "Note #2" lipsum 1438554156953 "..."],
+      selectedNote = 2,
+      currentTime = 0 }
 
 ----------------
 -- Model helpers
@@ -55,10 +59,12 @@ update event model =
     let newModel = case event of
         Tick time ->
             {model |
+                currentTime <- time,
                 notes <- updateNotesTimeDistance model.notes time }
 
         New ->
-            let newNote = Note (model.uid + 1) "New" "New" "2015-8-3 20:10:32" "Now"
+            let id = model.uid + 1
+                newNote = Note id ("Note #" ++ toString id) "Type your stuff here" model.currentTime "Now"
             in {model |
                 uid <- newNote.id,
                 notes <- [newNote] ++ model.notes,
@@ -97,6 +103,12 @@ updateNotesTimeDistance notes time =
     List.map (updateNoteTimeDistance time) notes
 
 
+updateNoteTimeDistance : Float -> Note -> Note
+updateNoteTimeDistance time note =
+    {note |
+        distanceInTime <- distanceInTime note.createdAt time }
+
+
 distanceInTime : Float -> Float -> String
 distanceInTime event now =
     let distance = now - event
@@ -104,18 +116,6 @@ distanceInTime event now =
                   | distance < hour -> (distance / minute, "minutes")
                   | otherwise -> (distance / hour, "hours")
     in case x of (amount, unit) -> (toString <| floor <| amount) ++ " " ++ unit ++ " ago"
-
-
-updateNoteTimeDistance : Float -> Note -> Note
-updateNoteTimeDistance time note =
-    let date = fromString note.created_at
-    in
-        case date of
-          Ok date ->
-            {note | distance_in_time <- distanceInTime (toTime date) time }
-
-          Err _ ->
-            {note | distance_in_time <- "ERR" }
 
 -------
 -- View
@@ -153,9 +153,9 @@ noteList address model =
 
 notePreview : Address Action -> Int -> Note -> Html
 notePreview address selectedNote note =
-    li [class "note-preview"] [
-        a [class ("note-preview__link" ++ if note.id == selectedNote then " is-selected" else ""), onClick address (Select note)] [
-            span [class "note-preview__time"] [text note.distance_in_time],
+    li [class ("note-preview" ++ if note.id == selectedNote then " is-selected" else "")] [
+        a [href "#", class "note-preview__link", onClick address (Select note)] [
+            span [class "note-preview__time"] [text note.distanceInTime],
             h2 [class "note-preview__title"] [text note.title],
             p [class "note-preview__body"] [text (limit note.body) ]
         ]

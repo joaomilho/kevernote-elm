@@ -112,6 +112,7 @@ body > div {
   background: #0072cc;
   border: 3px solid #0072cc !important;
   color: white;
+  text-decoration: none;
 }
 
 .note-preview__link:hover .note-preview__time, .note-preview__link:hover .note-preview__body {
