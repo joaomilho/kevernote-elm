@@ -3,10 +3,11 @@ module Kevernote where
 import Date exposing (fromString, toTime)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (..)
-import Signal exposing((<~), (~), Address)
+import Html.Events exposing (on, onClick, targetValue)
+import Signal exposing((<~), Address)
 import String
 import Time exposing (every, second, minute, hour)
+import Debug
 
 --------
 -- Model
@@ -14,14 +15,13 @@ import Time exposing (every, second, minute, hour)
 
 type alias Note = { id: Int, title : String, body : String, created_at : String, distance_in_time : String }
 
-type alias Model = { uid : Int, notes : List Note, selectedNote : Int, windowHeight: Int }
+type alias Model = { uid : Int, notes : List Note, selectedNote : Int }
 
 initialModel : Model
 initialModel =
     { uid = 2,
       notes = [Note 1 "New" "New" "2015-8-2 15:31:32" "...", Note 2 "Title2" "Desc2" "2015-8-1 15:10:32" "..."],
-      selectedNote = 1,
-      windowHeight = 700 }
+      selectedNote = 1 }
 
 ----------------
 -- Model helpers
@@ -51,7 +51,8 @@ type Action =
 
 update : Action -> Model -> Model
 update event model =
-    case event of
+
+    let newModel = case event of
         Tick time ->
             {model |
                 notes <- updateNotesTimeDistance model.notes time }
@@ -78,6 +79,7 @@ update event model =
             {model |
                 selectedNote <- (first model.notes).id,
                 notes <- List.filter (\n -> note /= n) model.notes}
+    in Debug.watch "model" newModel
 
 -----------------
 -- Update helpers
@@ -189,8 +191,8 @@ onInput address action =
 
 limit : String -> String
 limit string =
-    if String.length string > 200
-        then (String.left 197 string) ++ "..."
+    if String.length string > 100
+        then (String.left 97 string) ++ "..."
         else string
 
 
