@@ -3,8 +3,9 @@ module Kevernote where
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onClick, targetValue)
-import Signal exposing((<~), Address)
-import String
+import List exposing (reverse, head, filter, map)
+import Signal exposing((<~), Address, merge, foldp, mailbox)
+import String exposing(left)
 import Time exposing (Time, every, second, minute, hour)
 import Debug
 
@@ -23,7 +24,7 @@ type alias Model = { uid : Int, notes : List Note, selectedNote : Int, currentTi
 initialModel : Model
 initialModel =
     { uid = 2,
-      notes = List.reverse [Note 1 "Note #1" lipsum 1438554156953 "...", Note 2 "Note #2" lipsum 1438554156953 "..."],
+      notes = reverse [Note 1 "Note #1" lipsum 1438554156953 "...", Note 2 "Note #2" lipsum 1438554156953 "..."],
       selectedNote = 2,
       currentTime = 0 }
 
@@ -33,11 +34,12 @@ initialModel =
 
 getSelectedNote : Model -> Note
 getSelectedNote model =
-    first (List.filter (\n -> n.id == model.selectedNote) model.notes)
+    first (filter (\n -> n.id == model.selectedNote) model.notes)
+
 
 first : List Note -> Note
 first notes =
-  case List.head notes of Just note -> note
+  case head notes of Just note -> note
 
 ---------
 -- Update
@@ -84,7 +86,7 @@ update event model =
         Delete note ->
             {model |
                 selectedNote <- (first model.notes).id,
-                notes <- List.filter (\n -> note /= n) model.notes}
+                notes <- filter (\n -> note /= n) model.notes}
     in Debug.watch "model" newModel
 
 -----------------
@@ -96,11 +98,11 @@ updateNote model note updatedNote =
   let replaceNote n = if note.id == n.id then updatedNote else n
   in {model |
         selectedNote <- updatedNote.id,
-        notes <- List.map replaceNote model.notes}
+        notes <- map replaceNote model.notes}
 
 updateNotesTimeDistance : List Note -> Float -> List Note
 updateNotesTimeDistance notes time =
-    List.map (updateNoteTimeDistance time) notes
+    map (updateNoteTimeDistance time) notes
 
 
 updateNoteTimeDistance : Float -> Note -> Note
@@ -146,8 +148,8 @@ noteList : Address Action -> Model -> Html
 noteList address model =
     aside [class "note-list"] [
         h2 [class "note-list__title"] [text "Notes"],
-        div [class "note-list__summary"] [text (length model.notes)],
-        ul [class "note-list__container"] (List.map (notePreview address model.selectedNote) model.notes)
+        div [class "note-list__summary"] [text (noteCount model.notes)],
+        ul [class "note-list__container"] (map (notePreview address model.selectedNote) model.notes)
     ]
 
 
@@ -192,12 +194,12 @@ onInput address action =
 limit : String -> String
 limit string =
     if String.length string > 100
-        then (String.left 97 string) ++ "..."
+        then (left 97 string) ++ "..."
         else string
 
 
-length : List Note -> String
-length notes =
+noteCount : List Note -> String
+noteCount notes =
     let len = List.length notes
     in if len == 1
         then "1 note"
@@ -214,17 +216,17 @@ tick =
 
 signals : Signal Action
 signals =
-    Signal.merge actions.signal tick
+    merge actions.signal tick
 
 
 model : Signal Model
 model =
-    Signal.foldp update initialModel signals
+    foldp update initialModel signals
 
 
 actions : Signal.Mailbox Action
 actions =
-    Signal.mailbox NoOp
+    mailbox NoOp
 
 
 main : Signal Html
