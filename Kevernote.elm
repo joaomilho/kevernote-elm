@@ -1,5 +1,6 @@
 module Kevernote where
 
+
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onClick, targetValue)
@@ -68,9 +69,9 @@ update event model =
             let id = model.uid + 1
                 newNote = Note id ("Note #" ++ toString id) "Type your stuff here" model.currentTime "Now"
             in {model |
-                uid <- newNote.id,
-                notes <- [newNote] ++ model.notes,
-                selectedNote <- newNote.id}
+                    uid <- newNote.id,
+                    notes <- [newNote] ++ model.notes,
+                    selectedNote <- newNote.id}
 
         Select note ->
             {model | selectedNote <- note.id }
@@ -87,6 +88,7 @@ update event model =
             {model |
                 selectedNote <- (first model.notes).id,
                 notes <- filter (\n -> note /= n) model.notes}
+
     in Debug.watch "model" newModel
 
 -----------------
